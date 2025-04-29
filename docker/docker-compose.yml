@@ -2,15 +2,15 @@ version: '3.8'
 
 services:
   playwright-server:
-    image: mcr.microsoft.com/playwright:v1.43.1-jammy
+    image: mcr.microsoft.com/playwright:v1.42.0-jammy
     container_name: playwright-chrome
     ports:
       - "9222:9222"
     command: >
       bash -c "
         cd /app && 
-        npx playwright install chromium &&
-        npx playwright run-server --port=9222 --host=0.0.0.0
+        npx playwright@1.42.0 install chromium &&
+        npx playwright@1.42.0 run-server --port=9222 --host=0.0.0.0
       "
     shm_size: '2gb'
     volumes:
