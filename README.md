@@ -282,10 +282,10 @@ cd docker
 ```
 
 This script:
-1. Creates a clean Linux-formatted startup script on your local system
-2. Mounts this script into the container
-3. Uses a direct `/bin/bash` execution to avoid any line ending or format issues
-4. Does not require running `dos2unix` or other utilities
+1. Extracts the startup script from the container image
+2. Fixes line endings using the Linux `sed` command 
+3. Creates a new Docker image with the fixed script
+4. Runs the container using the fixed image
 
-This approach is more reliable on WSL systems where Windows and Linux line endings can cause compatibility issues.
+This approach addresses the Windows/Linux line ending incompatibilities that frequently occur in WSL environments without requiring manual installation of `dos2unix` or other utilities.
 
