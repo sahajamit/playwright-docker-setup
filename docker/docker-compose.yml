@@ -9,12 +9,16 @@ services:
     command: >
       bash -c "
         cd /app && 
-        npx playwright@1.42.0 install chromium &&
-        npx playwright@1.42.0 run-server --port=9222 --host=0.0.0.0
+        npm config set strict-ssl false &&
+        NODE_TLS_REJECT_UNAUTHORIZED=0 npx playwright@1.42.0 install chromium &&
+        NODE_TLS_REJECT_UNAUTHORIZED=0 npx playwright@1.42.0 run-server --port=9222 --host=0.0.0.0
       "
+    environment:
+      - NODE_TLS_REJECT_UNAUTHORIZED=0
     shm_size: '2gb'
     volumes:
       - ./screenshots:/app/screenshots
+      - ./.npmrc:/root/.npmrc
     restart: unless-stopped
 
 networks:

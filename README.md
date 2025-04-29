@@ -13,7 +13,9 @@ This project demonstrates using Playwright for browser automation in a container
 ```
 playwright-setup/
 ├── docker/
-│   └── docker-compose.yml     # Docker configuration for Playwright server
+│   ├── docker-compose.yml     # Docker configuration for Playwright server
+│   ├── .npmrc                 # npm configuration for enterprise environments
+│   └── enterprise-setup.sh    # Script to configure for enterprise environments
 ├── src/
 │   └── main/
 │       └── java/
@@ -44,6 +46,25 @@ mvn clean package
 java -jar target/playwright-setup-1.0-SNAPSHOT-jar-with-dependencies.jar
 ```
 
+## Enterprise Environment Setup
+
+If you're running this in an enterprise environment with SSL certificate issues, use the provided script:
+
+```bash
+cd docker
+./enterprise-setup.sh
+```
+
+This script:
+1. Creates an `.npmrc` file to bypass SSL certificate validation
+2. Optionally configures a custom npm registry if needed
+3. Provides instructions for restarting the container
+
+If you're still experiencing SSL issues, the Docker Compose file has been configured to:
+- Set `strict-ssl=false` for npm
+- Set the `NODE_TLS_REJECT_UNAUTHORIZED=0` environment variable
+- Mount the `.npmrc` file into the container
+
 ## What It Does
 
 1. The Docker container runs a Playwright server with Chromium browser accessible via WebSocket
@@ -62,4 +83,5 @@ java -jar target/playwright-setup-1.0-SNAPSHOT-jar-with-dependencies.jar
 ## Troubleshooting
 
 - If you see version mismatch errors, make sure the Playwright version in `pom.xml` matches the version in `docker-compose.yml`
-- Check container logs with `docker logs playwright-chrome` if you encounter connection issues 
+- Check container logs with `docker logs playwright-chrome` if you encounter connection issues
+- For SSL certificate issues in enterprise environments, see the "Enterprise Environment Setup" section 
