@@ -1,5 +1,5 @@
-# Use Node.js as base image (with Java included for the integration)
-FROM openjdk:17-slim-buster
+# Use official Node.js 18 image with Java 17 included
+FROM node:18-jdk17-buster-slim
 
 # Set environment variables
 ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
@@ -10,12 +10,14 @@ ENV NODE_TLS_REJECT_UNAUTHORIZED=0
 # Working directory
 WORKDIR /app
 
-# Install system dependencies for Playwright, including dos2unix and gnupg
+# Install system dependencies for Playwright, including dos2unix
+# Node.js and npm are already included in the base image
 RUN apt-get update && apt-get install -y \
     wget \
     curl \
     unzip \
     xvfb \
+    # gnupg is often useful, keeping it just in case 
     gnupg \
     ca-certificates \
     fonts-liberation \
@@ -50,14 +52,9 @@ RUN apt-get update && apt-get install -y \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-# Add NodeSource repository for Node.js 18
-RUN curl -sL https://deb.nodesource.com/setup_18.x | bash -
-
-# Install Node.js (which should now pull Node 18 from NodeSource) and specific npm version
-RUN apt-get update && apt-get install -y nodejs
-
-# Install/Update npm separately
-RUN npm install -g npm@9.8.1
+# Verify Node.js and npm versions from base image
+RUN echo "VERIFY: Node version: $(node -v)" \
+    && echo "VERIFY: npm version: $(npm -v)"
 
 # Install Playwright without browser auto-download
 RUN npm init -y \
