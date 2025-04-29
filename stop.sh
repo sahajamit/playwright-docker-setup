@@ -17,9 +17,9 @@ echo "Using container runtime: $CONTAINER_CMD"
 # Stop the container
 cd docker
 if [ "$CONTAINER_CMD" = "docker" ]; then
-    docker-compose down
+    docker compose down
 else
-    podman-compose down
+    podman compose down
 fi
 
 echo "Playwright container stopped." 
