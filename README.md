@@ -252,7 +252,7 @@ This is typically caused by line ending issues or script format incompatibilitie
    ./run-enterprise-build.sh
    ```
 
-2. Alternatively, if you need to use the image from the registry, you can modify the container command:
+2. Alternatively, if you need to use the image from the registry, use the correct script path:
    ```bash
    docker run -d \
      --name playwright-chromium \
@@ -262,8 +262,13 @@ This is typically caused by line ending issues or script format incompatibilitie
      --restart unless-stopped \
      --entrypoint "/bin/sh" \
      sahajamit/playwright-chromium-server:latest \
-     -c "/app/start.sh"
+     -c "/app/start-playwright-server.sh"
    ```
 
-The enterprise build includes `dos2unix` to fix line endings and provides a `/bin/sh`-compatible script for maximum compatibility across platforms.
+If you encounter a "not found" error:
+```
+/bin/sh: 1: /app/start.sh: not found
+```
+
+This is because the registry image has `start-playwright-server.sh` instead of `start.sh`. The enterprise build includes `dos2unix` to fix line endings and provides additional script options for maximum compatibility across platforms.
 
