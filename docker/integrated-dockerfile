@@ -10,7 +10,7 @@ ENV NODE_TLS_REJECT_UNAUTHORIZED=0
 # Working directory
 WORKDIR /app
 
-# Install system dependencies for Playwright, including dos2unix
+# Install system dependencies for Playwright, including dos2unix and gnupg
 RUN apt-get update && apt-get install -y \
     wget \
     curl \
@@ -50,10 +50,14 @@ RUN apt-get update && apt-get install -y \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Node.js
-RUN curl -sL https://deb.nodesource.com/setup_18.x | bash - \
-    && apt-get install -y nodejs \
-    && npm install -g npm@9.8.1
+# Add NodeSource repository for Node.js 18
+RUN curl -sL https://deb.nodesource.com/setup_18.x | bash -
+
+# Install Node.js (which should now pull Node 18 from NodeSource) and specific npm version
+RUN apt-get update && apt-get install -y nodejs
+
+# Install/Update npm separately
+RUN npm install -g npm@9.8.1
 
 # Install Playwright without browser auto-download
 RUN npm init -y \

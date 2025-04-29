@@ -131,13 +131,15 @@ You can also run the containerized Playwright server directly with Docker comman
 
 ```bash
 # Pull the image from Docker Hub (only needed once or when updating)
-docker pull sahajamit/playwright-chromium-server:latest
+# Use --platform linux/amd64 if you encounter platform mismatch warnings (e.g., on WSL Ubuntu)
+docker pull --platform linux/amd64 sahajamit/playwright-chromium-server:latest
 
 # Create a directory for screenshots if needed
 mkdir -p screenshots
 
 # Run the container
-docker run -d \
+# Use --platform linux/amd64 if you encounter platform mismatch warnings (e.g., on WSL Ubuntu)
+docker run --platform linux/amd64 -d \
   --name playwright-chromium \
   -p 9222:9222 \
   --shm-size=2gb \
@@ -145,6 +147,8 @@ docker run -d \
   --restart unless-stopped \
   sahajamit/playwright-chromium-server:latest
 ```
+
+**Note for WSL Ubuntu Users:** If you see a warning like `image platform linux/arm64/v8 does not match the expected platform linux/amd64` or an `Exec format error`, ensure you use the `--platform linux/amd64` flag with both `docker pull` and `docker run` commands as shown above.
 
 For Podman:
 ```bash
@@ -167,7 +171,8 @@ For enterprise environments with private Docker registries:
 1. First, push the image to your private registry:
 ```bash
 # Pull from Docker Hub (if you have internet access on this machine)
-docker pull sahajamit/playwright-chromium-server:latest
+# Use --platform linux/amd64 if needed for your environment
+docker pull --platform linux/amd64 sahajamit/playwright-chromium-server:latest
 
 # Tag for your private registry
 docker tag sahajamit/playwright-chromium-server:latest your-registry.example.com/playwright-chromium-server:latest
@@ -178,9 +183,11 @@ docker push your-registry.example.com/playwright-chromium-server:latest
 
 2. On machines with access to the private registry, pull and run:
 ```bash
-docker pull your-registry.example.com/playwright-chromium-server:latest
+# Use --platform linux/amd64 if needed for your environment
+docker pull --platform linux/amd64 your-registry.example.com/playwright-chromium-server:latest
 
-docker run -d \
+# Use --platform linux/amd64 if needed for your environment
+docker run --platform linux/amd64 -d \
   --name playwright-chromium \
   -p 9222:9222 \
   --shm-size=2gb \
@@ -236,39 +243,89 @@ If you're still experiencing SSL issues, the Docker Compose file has been config
 - For air-gapped or highly restricted environments, use the integrated Docker setup or pre-built Docker image
 - If you see "Exec format error" in enterprise environments, use the enterprise-compatible build script
 
-### Fixing "Exec format error" on Ubuntu
+### Fixing "Exec format error" on Ubuntu / WSL (Docker & Podman)
 
-If you encounter this specific error on Ubuntu when running the image from Docker Hub:
-
+If you encounter errors like:
 ```
 {"msg":"exec container process `/app/start-playwright-server.sh`: Exec format error"}
 ```
-
-This is typically caused by line ending issues or script format incompatibilities. To fix:
-
-1. Use the enterprise-compatible build instead:
-   ```bash
-   cd docker
-   ./run-enterprise-build.sh
-   ```
-
-2. Alternatively, if you need to use the image from the registry, use the correct script path:
-   ```bash
-   docker run -d \
-     --name playwright-chromium \
-     -p 9222:9222 \
-     --shm-size=2gb \
-     -v "$(pwd)/screenshots:/app/screenshots" \
-     --restart unless-stopped \
-     --entrypoint "/bin/sh" \
-     sahajamit/playwright-chromium-server:latest \
-     -c "/app/start-playwright-server.sh"
-   ```
-
-If you encounter a "not found" error:
+Or
 ```
-/bin/sh: 1: /app/start.sh: not found
+{"msg":"exec container process `/bin/bash`: Exec format error"}
 ```
+Especially when accompanied by a warning like:
+```
+WARNING: image platform (linux/arm64/v8) does not match the expected platform (linux/amd64)
+```
+This usually indicates a platform mismatch or line ending issue, common in WSL environments.
 
-This is because the registry image has `start-playwright-server.sh` instead of `start.sh`. The enterprise build includes `dos2unix` to fix line endings and provides additional script options for maximum compatibility across platforms.
+**Troubleshooting Steps:**
+
+**Important Note:** If you are using Podman on WSL (perhaps with a `docker` alias), use the `podman` commands directly for these steps, not the alias.
+
+1.  **Force Correct Platform (Most Common Fix):**
+    *   Ensure your container runtime (Docker or Podman) uses the `linux/amd64` architecture.
+    *   **Remove potentially incorrect local images:**
+        *   *Docker:* `docker stop ... && docker rm ... && docker rmi ... && docker image prune -f`
+        *   *Podman:* `podman stop ... && podman rm ... && podman rmi ... && podman image prune -a -f`
+        ```bash
+        # Example for Podman:
+        podman stop playwright-chromium || true && podman rm playwright-chromium || true
+        podman rmi docker.io/sahajamit/playwright-chromium-server:0.1 || true # Use your tag
+        podman rmi docker.io/sahajamit/playwright-chromium-server:latest || true
+        podman image prune -a -f
+        ```
+    *   **Pull and run explicitly specifying the platform:**
+        ```bash
+        # Example for Podman:
+        podman pull --platform linux/amd64 docker.io/sahajamit/playwright-chromium-server:0.1 # Use tag
+        podman run --platform linux/amd64 -d \
+          --name playwright-chromium \
+          -p 9222:9222 \
+          --shm-size=2gb \
+          -v "$(pwd)/screenshots:/app/screenshots:Z" `# Add :Z for Podman` \
+          --restart unless-stopped \
+          docker.io/sahajamit/playwright-chromium-server:0.1 # Use tag
+        ```
+    *   **Important:** Do *not* override the `--entrypoint` or command (`-c ...`).
+
+2.  **Test Basic Shell Execution (If Step 1 Fails):**
+    *   Check if the basic shell itself is runnable:
+        ```bash
+        # Example for Podman:
+        podman run --platform linux/amd64 --rm docker.io/sahajamit/playwright-chromium-server:0.1 /bin/bash -c "echo Hello"
+        ```
+    *   If this *also* fails with `Exec format error`, the issue is likely with your container runtime setup ignoring `--platform`.
+
+3.  **Check Docker Desktop / Podman Configuration (If Step 2 Fails):**
+    *   **Docker:** Check Docker Desktop settings (WSL Integration, Experimental Features, Context, Version) as described previously.
+    *   **Podman:**
+        *   Check Podman version (`podman --version`). Consider updating.
+        *   Inspect Podman configuration files (`/etc/containers/...`, `~/.config/containers/...`) for architecture settings.
+        *   If issues persist, the `--platform` flag might be ignored by Podman in your environment.
+
+4.  **Build Locally (Recommended Workaround for Persistent WSL/Podman Issues):**
+    *   If Step 1 & 2 fail repeatedly (especially with Podman), building the image locally within WSL is the most reliable solution.
+    *   This bypasses platform selection issues during image pulls.
+        ```bash
+        # Example for Podman:
+        cd /path/to/playwright-setup/docker
+        podman build -f integrated-dockerfile -t playwright-local-build .
+        # Stop/remove previous attempts: podman stop/rm playwright-chromium
+        podman run -d \
+          --name playwright-chromium \
+          -p 9222:9222 \
+          --shm-size=2gb \
+          -v "$(pwd)/screenshots:/app/screenshots:Z" `# Add :Z for Podman` \
+          --restart unless-stopped \
+          playwright-local-build
+        ```
+
+5.  **Use the Enterprise Build (Alternative):**
+    *   The enterprise build uses different compatibility measures.
+        ```bash
+        # Use podman build/run if applicable
+        cd docker
+        ./run-enterprise-build.sh # Modify script to use podman if needed
+        ```
 
