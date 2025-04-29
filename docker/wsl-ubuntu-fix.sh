@@ -16,13 +16,13 @@ echo "Cleaning up any existing containers..."
 docker stop playwright-chromium &> /dev/null || true
 docker rm playwright-chromium &> /dev/null || true
 
-# Pull the image first
-echo "Pulling the Playwright image..."
-docker pull sahajamit/playwright-chromium-server:latest
+# Pull the image with platform specification
+echo "Pulling the Playwright image with platform specification..."
+docker pull --platform linux/amd64 sahajamit/playwright-chromium-server:latest
 
 # Create a temporary container to fix line endings
 echo "Creating temporary container to fix line endings..."
-TEMP_CONTAINER=$(docker create sahajamit/playwright-chromium-server:latest)
+TEMP_CONTAINER=$(docker create --platform linux/amd64 sahajamit/playwright-chromium-server:latest)
 
 # Copy the script from the container
 echo "Extracting script from container..."
@@ -36,22 +36,22 @@ chmod +x ./start-playwright-server.sh
 # Create a fixed Dockerfile
 echo "Creating fixed Dockerfile..."
 cat > ./wsl-fixed.dockerfile << 'EOF'
-FROM sahajamit/playwright-chromium-server:latest
+FROM --platform=linux/amd64 sahajamit/playwright-chromium-server:latest
 COPY start-playwright-server.sh /app/start-playwright-server.sh
 RUN chmod +x /app/start-playwright-server.sh
 CMD ["/bin/bash", "/app/start-playwright-server.sh"]
 EOF
 
 # Build a fixed image
-echo "Building fixed image..."
-docker build -t playwright-wsl-fixed -f ./wsl-fixed.dockerfile .
+echo "Building fixed image with platform specification..."
+docker build --platform linux/amd64 -t playwright-wsl-fixed -f ./wsl-fixed.dockerfile .
 
 # Remove temporary container
 docker rm $TEMP_CONTAINER
 
 # Run the fixed image
-echo "Running container with fixed scripts..."
-docker run -d \
+echo "Running container with fixed scripts and correct platform..."
+docker run --platform linux/amd64 -d \
   --name playwright-chromium \
   -p 9222:9222 \
   --shm-size=2gb \

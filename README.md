@@ -286,6 +286,9 @@ This script:
 2. Fixes line endings using the Linux `sed` command 
 3. Creates a new Docker image with the fixed script
 4. Runs the container using the fixed image
+5. Forces the correct platform (linux/amd64) to avoid architecture mismatches in WSL
 
-This approach addresses the Windows/Linux line ending incompatibilities that frequently occur in WSL environments without requiring manual installation of `dos2unix` or other utilities.
+This approach addresses the Windows/Linux line ending incompatibilities and platform issues that frequently occur in WSL environments without requiring manual installation of `dos2unix` or other utilities.
+
+If you see a platform mismatch error like `image platform linux/arm64/v8 does not match with expected platform linux/amd64`, this fix will help as it explicitly specifies the platform at each step of the process.
 
