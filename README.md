@@ -17,6 +17,9 @@ playwright-setup/
 │   ├── integrated-dockerfile          # Self-contained Dockerfile with all dependencies
 │   ├── integrated-docker-compose.yml  # Docker Compose for the integrated setup
 │   ├── run-integrated.sh              # Script to run the integrated container
+│   ├── docker-compose-registry.yml    # Docker Compose for the Docker Hub image
+│   ├── run-from-registry.sh           # Script to run container from Docker Hub
+│   ├── quick-start.sh                 # Standalone script for Docker Hub image
 │   ├── .npmrc                         # npm configuration for enterprise environments
 │   └── enterprise-setup.sh            # Script to configure for enterprise environments
 ├── src/
@@ -30,6 +33,21 @@ playwright-setup/
 ```
 
 ## How to Run
+
+### Quick Start (Simplest Method)
+
+For the quickest setup using the pre-built Docker image from Docker Hub:
+
+```bash
+cd docker
+./quick-start.sh
+```
+
+This standalone script:
+1. Pulls the latest `sahajamit/playwright-chromium-server` image from Docker Hub
+2. Creates a local directory for screenshots
+3. Runs the container with all necessary settings
+4. Shows how to connect, check logs, and clean up
 
 ### Standard Setup
 
@@ -73,6 +91,91 @@ mvn clean package
 java -jar target/playwright-setup-1.0-SNAPSHOT-jar-with-dependencies.jar
 ```
 
+### Using Pre-built Docker Image
+
+For the simplest setup, you can use our pre-built Docker image that's already hosted on Docker Hub:
+
+#### Using the Provided Script
+
+```bash
+cd docker
+./run-from-registry.sh
+```
+
+This script:
+1. Pulls the latest `sahajamit/playwright-chromium-server` image from Docker Hub
+2. Starts a container using this image
+3. No need to build anything locally
+
+#### Direct Docker Commands (No Scripts Required)
+
+You can also run the containerized Playwright server directly with Docker commands:
+
+```bash
+# Pull the image from Docker Hub (only needed once or when updating)
+docker pull sahajamit/playwright-chromium-server:latest
+
+# Create a directory for screenshots if needed
+mkdir -p screenshots
+
+# Run the container
+docker run -d \
+  --name playwright-chromium \
+  -p 9222:9222 \
+  --shm-size=2gb \
+  -v "$(pwd)/screenshots:/app/screenshots" \
+  --restart unless-stopped \
+  sahajamit/playwright-chromium-server:latest
+```
+
+For Podman:
+```bash
+podman pull sahajamit/playwright-chromium-server:latest
+
+mkdir -p screenshots
+
+podman run -d \
+  --name playwright-chromium \
+  -p 9222:9222 \
+  --shm-size=2gb \
+  -v "$(pwd)/screenshots:/app/screenshots:Z" \
+  sahajamit/playwright-chromium-server:latest
+```
+
+#### Using in Enterprise Private Registries
+
+For enterprise environments with private Docker registries:
+
+1. First, push the image to your private registry:
+```bash
+# Pull from Docker Hub (if you have internet access on this machine)
+docker pull sahajamit/playwright-chromium-server:latest
+
+# Tag for your private registry
+docker tag sahajamit/playwright-chromium-server:latest your-registry.example.com/playwright-chromium-server:latest
+
+# Push to your private registry
+docker push your-registry.example.com/playwright-chromium-server:latest
+```
+
+2. On machines with access to the private registry, pull and run:
+```bash
+docker pull your-registry.example.com/playwright-chromium-server:latest
+
+docker run -d \
+  --name playwright-chromium \
+  -p 9222:9222 \
+  --shm-size=2gb \
+  -v "$(pwd)/screenshots:/app/screenshots" \
+  --restart unless-stopped \
+  your-registry.example.com/playwright-chromium-server:latest
+```
+
+These approaches are especially useful in:
+- Continuous Integration environments
+- Environments with limited or no internet access (using private registry)
+- When you want a quick setup without building anything
+
 ## Enterprise Environment Setup
 
 If you're running the standard setup in an enterprise environment with SSL certificate issues, use the provided script:
@@ -110,7 +213,7 @@ If you're still experiencing SSL issues, the Docker Compose file has been config
 ## Troubleshooting
 
 - If you see version mismatch errors, make sure the Playwright version in `pom.xml` matches the version in `docker-compose.yml`
-- Check container logs with `docker logs playwright-chrome` or `docker logs playwright-integrated` if you encounter connection issues
+- Check container logs with `docker logs playwright-chromium` if you encounter connection issues
 - For SSL certificate issues in enterprise environments, see the "Enterprise Environment Setup" section
-- For air-gapped or highly restricted environments, use the integrated Docker setup 
+- For air-gapped or highly restricted environments, use the integrated Docker setup or pre-built Docker image
 
