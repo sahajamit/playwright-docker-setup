@@ -33,31 +33,33 @@ echo "Fixing line endings with sed..."
 sed -i 's/\r$//' ./start-playwright-server.sh
 chmod +x ./start-playwright-server.sh
 
-# Create a fixed Dockerfile
-echo "Creating fixed Dockerfile..."
-cat > ./wsl-fixed.dockerfile << 'EOF'
-FROM --platform=linux/amd64 sahajamit/playwright-chromium-server:latest
-COPY start-playwright-server.sh /app/start-playwright-server.sh
-RUN chmod +x /app/start-playwright-server.sh
-CMD ["/bin/bash", "/app/start-playwright-server.sh"]
+# Create a simple start script
+echo "Creating a simple shell script for the container..."
+cat > ./wsl-container-start.sh << 'EOF'
+#!/bin/bash
+Xvfb :99 -screen 0 1280x1024x24 &
+export DISPLAY=:99
+cd /app
+echo "Starting Playwright server on port 9222..."
+npx playwright@1.42.0 run-server --port=9222 --host=0.0.0.0
 EOF
+chmod +x ./wsl-container-start.sh
 
-# Build a fixed image
-echo "Building fixed image with platform specification..."
-docker build --platform linux/amd64 -t playwright-wsl-fixed -f ./wsl-fixed.dockerfile .
-
-# Remove temporary container
-docker rm $TEMP_CONTAINER
-
-# Run the fixed image
-echo "Running container with fixed scripts and correct platform..."
+# Skip Docker build and just run the container with the fixed script
+echo "Running container with script mounted directly (skipping build)..."
 docker run --platform linux/amd64 -d \
   --name playwright-chromium \
   -p 9222:9222 \
   --shm-size=2gb \
   -v "$(pwd)/screenshots:/app/screenshots" \
+  -v "$(pwd)/wsl-container-start.sh:/app/wsl-container-start.sh" \
   --restart unless-stopped \
-  playwright-wsl-fixed
+  --entrypoint "/bin/bash" \
+  sahajamit/playwright-chromium-server:latest \
+  "/app/wsl-container-start.sh"
+
+# Remove temporary container
+docker rm $TEMP_CONTAINER
 
 echo "Waiting for container to initialize..."
 sleep 5
@@ -77,4 +79,4 @@ echo "To stop the container:"
 echo "docker stop playwright-chromium"
 echo ""
 echo "To clean up temporary files:"
-echo "rm -f ./start-playwright-server.sh ./wsl-fixed.dockerfile" 
+echo "rm -f ./start-playwright-server.sh ./wsl-container-start.sh" 

@@ -282,13 +282,16 @@ cd docker
 ```
 
 This script:
-1. Extracts the startup script from the container image
-2. Fixes line endings using the Linux `sed` command 
-3. Creates a new Docker image with the fixed script
-4. Runs the container using the fixed image
-5. Forces the correct platform (linux/amd64) to avoid architecture mismatches in WSL
+1. Creates a clean shell script on your WSL system with proper Linux line endings
+2. Mounts this script directly into the container (avoiding any Docker build steps)
+3. Uses an explicit `/bin/bash` entry point to execute the script
+4. Forces the correct platform (linux/amd64) to avoid architecture mismatches in WSL
 
-This approach addresses the Windows/Linux line ending incompatibilities and platform issues that frequently occur in WSL environments without requiring manual installation of `dos2unix` or other utilities.
+This approach completely bypasses the exec format errors that can occur during Docker build processes in WSL, by avoiding any build steps and relying solely on volume mounts and explicit commands.
 
-If you see a platform mismatch error like `image platform linux/arm64/v8 does not match with expected platform linux/amd64`, this fix will help as it explicitly specifies the platform at each step of the process.
+If you see either of these errors:
+- `exec container process '/app/start-playwright-server.sh': Exec format error`
+- `exec container process 'bin/sh': Exec format error`
+
+The script will resolve them by creating properly formatted scripts on your host system first.
 
