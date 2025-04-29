@@ -113,3 +113,4 @@ If you're still experiencing SSL issues, the Docker Compose file has been config
 - Check container logs with `docker logs playwright-chrome` or `docker logs playwright-integrated` if you encounter connection issues
 - For SSL certificate issues in enterprise environments, see the "Enterprise Environment Setup" section
 - For air-gapped or highly restricted environments, use the integrated Docker setup 
+
