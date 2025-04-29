@@ -272,26 +272,3 @@ If you encounter a "not found" error:
 
 This is because the registry image has `start-playwright-server.sh` instead of `start.sh`. The enterprise build includes `dos2unix` to fix line endings and provides additional script options for maximum compatibility across platforms.
 
-### Special Fix for WSL Ubuntu
-
-If you're using WSL (Windows Subsystem for Linux) with Ubuntu and encounter the "Exec format error" despite trying the above solutions, use the dedicated WSL fix script:
-
-```bash
-cd docker
-./wsl-ubuntu-fix.sh
-```
-
-This script:
-1. Creates a clean shell script on your WSL system with proper Linux line endings
-2. Mounts this script directly into the container (avoiding any Docker build steps)
-3. Uses an explicit `/bin/bash` entry point to execute the script
-4. Forces the correct platform (linux/amd64) to avoid architecture mismatches in WSL
-
-This approach completely bypasses the exec format errors that can occur during Docker build processes in WSL, by avoiding any build steps and relying solely on volume mounts and explicit commands.
-
-If you see either of these errors:
-- `exec container process '/app/start-playwright-server.sh': Exec format error`
-- `exec container process 'bin/sh': Exec format error`
-
-The script will resolve them by creating properly formatted scripts on your host system first.
-
