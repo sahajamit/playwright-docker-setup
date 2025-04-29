@@ -1,5 +1,5 @@
-# Use official Node.js 18 image with Java 17 included
-FROM node:18-jdk17-buster-slim
+# Use official Node.js 20 Alpine image
+FROM node:20-alpine
 
 # Set environment variables
 ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
@@ -10,73 +10,62 @@ ENV NODE_TLS_REJECT_UNAUTHORIZED=0
 # Working directory
 WORKDIR /app
 
-# Install system dependencies for Playwright, including dos2unix
-# Node.js and npm are already included in the base image
-RUN apt-get update && apt-get install -y \
+# Install system dependencies for Playwright on Alpine
+# Includes common libs, fonts, xvfb, utils, and dos2unix
+RUN apk add --no-cache \
+    udev \
+    ttf-freefont \
+    fontconfig \
+    nss \
+    freetype \
+    harfbuzz \
+    ca-certificates \
+    dbus \
+    libstdc++ \
+    libx11 \
+    libxcomposite \
+    libxcursor \
+    libxdamage \
+    libxext \
+    libxfixes \
+    libxi \
+    libxrandr \
+    libxrender \
+    libxtst \
+    libgcc \
+    xvfb \
     wget \
     curl \
     unzip \
-    xvfb \
-    # gnupg is often useful, keeping it just in case 
-    gnupg \
-    ca-certificates \
-    fonts-liberation \
-    fonts-freefont-ttf \
-    fontconfig \
-    libasound2 \
-    libatk-bridge2.0-0 \
-    libatk1.0-0 \
-    libcups2 \
-    libdbus-1-3 \
-    libgbm1 \
-    libgdk-pixbuf2.0-0 \
-    libglib2.0-0 \
-    libgtk-3-0 \
-    libnspr4 \
-    libnss3 \
-    libpango-1.0-0 \
-    libpangocairo-1.0-0 \
-    libxcomposite1 \
-    libxcursor1 \
-    libxdamage1 \
-    libxfixes3 \
-    libxi6 \
-    libxrandr2 \
-    libxrender1 \
-    libxss1 \
-    libxtst6 \
-    xdg-utils \
-    libdrm2 \
-    libxshmfence1 \
-    dos2unix \
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/*
+    dos2unix
 
 # Verify Node.js and npm versions from base image
 RUN echo "VERIFY: Node version: $(node -v)" \
     && echo "VERIFY: npm version: $(npm -v)"
 
 # Install Playwright without browser auto-download
+# Using --no-optional as it sometimes helps on Alpine
 RUN npm init -y \
-    && npm install playwright@1.42.0
+    && npm install --no-optional playwright@1.42.0
 
-# Download and install Chromium manually (to avoid system dependency issues)
+# Download and install Chromium manually (avoids Alpine package issues)
 RUN mkdir -p /ms-playwright/chromium-1105 \
     && cd /ms-playwright/chromium-1105 \
     && curl -fsSL -o chromium-linux.zip https://playwright.azureedge.net/builds/chromium/1105/chromium-linux.zip \
     && unzip -q chromium-linux.zip \
     && rm -f chromium-linux.zip \
-    && chmod -R +x chrome-linux
+    && chmod -R +x ./chrome-linux
 
 # Set up Xvfb for headless browser and ensure correct line endings
-RUN echo '#!/bin/bash' > /app/start-xvfb.sh \
+RUN echo '#!/bin/sh' > /app/start-xvfb.sh \
     && echo 'Xvfb :99 -screen 0 1280x1024x24 &' >> /app/start-xvfb.sh \
     && chmod +x /app/start-xvfb.sh \
     && dos2unix /app/start-xvfb.sh
 
 # Create a script to start the Playwright server and ensure correct line endings
-RUN echo '#!/bin/bash' > /app/start-playwright-server.sh \
-    && echo 'source /app/start-xvfb.sh' >> /app/start-playwright-server.sh \
+# Using #!/bin/sh for better Alpine compatibility
+RUN echo '#!/bin/sh' > /app/start-playwright-server.sh \
+    && echo 'sh /app/start-xvfb.sh' >> /app/start-playwright-server.sh \
     && echo 'echo "Starting Playwright server on port 9222..."' >> /app/start-playwright-server.sh \
     && echo 'cd /app' >> /app/start-playwright-server.sh \
     && echo 'npx playwright@1.42.0 run-server --port=9222 --host=0.0.0.0' >> /app/start-playwright-server.sh \
@@ -90,5 +79,5 @@ RUN mkdir -p /app/screenshots \
 # Expose port for Playwright server
 EXPOSE 9222
 
-# Command to start the Playwright server using bash for better compatibility
-CMD ["/bin/bash", "/app/start-playwright-server.sh"] 
+# Command to start the Playwright server using sh for Alpine
+CMD ["/bin/sh", "/app/start-playwright-server.sh"] 
