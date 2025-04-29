@@ -10,7 +10,10 @@ ENV NODE_TLS_REJECT_UNAUTHORIZED=0
 # Working directory
 WORKDIR /app
 
-# Install system dependencies for Playwright on Alpine
+# Update apk cache and install ca-certificates first
+RUN apk update && apk add --no-cache ca-certificates wget
+
+# Install remaining system dependencies for Playwright on Alpine
 # Includes common libs, fonts, xvfb, utils, and dos2unix
 RUN apk add --no-cache \
     udev \
@@ -19,7 +22,7 @@ RUN apk add --no-cache \
     nss \
     freetype \
     harfbuzz \
-    ca-certificates \
+    # ca-certificates already installed
     dbus \
     libstdc++ \
     libx11 \
@@ -34,7 +37,7 @@ RUN apk add --no-cache \
     libxtst \
     libgcc \
     xvfb \
-    wget \
+    # wget already installed
     curl \
     unzip \
     dos2unix
