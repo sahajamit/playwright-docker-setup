@@ -8,59 +8,52 @@ import java.time.format.DateTimeFormatter;
 
 public class PlaywrightRemoteDemo {
     
-    // URL of the site to navigate to
-    private static final String TARGET_URL = "https://amitrawat.dev/";
-    
-    // CDP endpoint URL - this connects to Playwright server in Docker
-    private static final String REMOTE_BROWSER_WS_ENDPOINT = "ws://localhost:9222/playwright"; 
-
     public static void main(String[] args) {
-        try {
-            System.out.println("Starting Playwright Remote Demo...");
+        try (Playwright playwright = Playwright.create()) {
+            // Connect to the Playwright server running in Docker
+            // Use "ws://localhost:9222" format for connecting to Playwright server
+            String wsEndpoint = "ws://localhost:9222";
             
-            // Connect to remote Playwright server
-            BrowserType.ConnectOptions connectOptions = new BrowserType.ConnectOptions()
-                    .setWsEndpoint(REMOTE_BROWSER_WS_ENDPOINT);
-            
-            try (Playwright playwright = Playwright.create()) {
-                System.out.println("Connecting to remote browser...");
-                Browser browser = playwright.chromium().connect(connectOptions);
+            try {
+                System.out.println("Connecting to Playwright server at: " + wsEndpoint);
+                
+                // Connect to the browser in Docker via WebSocket
+                Browser browser = playwright.chromium().connect(wsEndpoint);
+                System.out.println("Successfully connected to browser: " + browser.version());
                 
                 // Create a new browser context
                 BrowserContext context = browser.newContext();
+                System.out.println("Browser context created");
                 
                 // Create a new page
                 Page page = context.newPage();
                 System.out.println("Browser page created");
                 
-                // Navigate to the target URL
-                System.out.println("Navigating to: " + TARGET_URL);
-                page.navigate(TARGET_URL);
+                // Navigate to target URL
+                page.navigate("https://amitrawat.dev/");
+                System.out.println("Page loaded");
                 
-                // Wait for the page to load completely
-                page.waitForLoadState(LoadState.NETWORKIDLE);
-                System.out.println("Page loaded successfully");
-                
-                // Take a screenshot to verify the page opened correctly
+                // Take a screenshot
                 String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"));
                 String screenshotPath = "screenshot_" + timestamp + ".png";
                 page.screenshot(new Page.ScreenshotOptions().setPath(Paths.get(screenshotPath)).setFullPage(true));
                 System.out.println("Screenshot saved to: " + screenshotPath);
                 
-                // Get page title as further verification
+                // Get and print page title
                 String title = page.title();
                 System.out.println("Page title: " + title);
                 
-                // Close browser and context
+                // Close everything
+                page.close();
                 context.close();
                 browser.close();
+                System.out.println("Test completed successfully");
+                
+            } catch (PlaywrightException e) {
+                System.err.println("Failed to connect or run Playwright test: " + e.getMessage());
+                e.printStackTrace();
+                System.exit(1);
             }
-            
-            System.out.println("Demo completed successfully!");
-            
-        } catch (Exception e) {
-            System.err.println("Error running Playwright demo: " + e.getMessage());
-            e.printStackTrace();
         }
     }
 } 
