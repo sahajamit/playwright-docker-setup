@@ -1,0 +1,22 @@
+version: '3'
+
+services:
+  playwright-server:
+    image: mcr.microsoft.com/playwright:v1.42.0-jammy
+    container_name: playwright-chromium
+    ports:
+      - "9222:9222"
+    command: ["npx", "playwright", "run-server", "--port=9222"]
+    # Ensure container stays running
+    tty: true
+    # To make sure the container starts first
+    networks:
+      - playwright-network
+    restart: unless-stopped
+    # Optional: If you need to persist screenshots
+    volumes:
+      - ./screenshots:/screenshots
+
+networks:
+  playwright-network:
+    driver: bridge 
