@@ -1,0 +1,19 @@
+version: '3.8'
+
+services:
+  playwright-chromium:
+    build:
+      context: .
+      dockerfile: enterprise-dockerfile
+    container_name: playwright-chromium
+    ports:
+      - "9222:9222"
+    shm_size: '2gb'
+    volumes:
+      - ./screenshots:/app/screenshots
+    restart: unless-stopped
+
+networks:
+  default:
+    name: playwright-network
+    driver: bridge 

@@ -20,6 +20,9 @@ playwright-setup/
 │   ├── docker-compose-registry.yml    # Docker Compose for the Docker Hub image
 │   ├── run-from-registry.sh           # Script to run container from Docker Hub
 │   ├── quick-start.sh                 # Standalone script for Docker Hub image
+│   ├── enterprise-dockerfile          # Dockerfile with enterprise compatibility fixes
+│   ├── enterprise-docker-compose.yml  # Docker Compose for enterprise build
+│   ├── run-enterprise-build.sh        # Script to build for enterprise environments
 │   ├── .npmrc                         # npm configuration for enterprise environments
 │   └── enterprise-setup.sh            # Script to configure for enterprise environments
 ├── src/
@@ -90,6 +93,21 @@ cd ..
 mvn clean package
 java -jar target/playwright-setup-1.0-SNAPSHOT-jar-with-dependencies.jar
 ```
+
+### Enterprise-Compatible Build (For Strict Environments)
+
+If you're encountering "Exec format error" or other script-related issues in enterprise environments:
+
+```bash
+cd docker
+./run-enterprise-build.sh
+```
+
+This script:
+1. Builds a Docker image with enhanced compatibility for strict enterprise environments
+2. Uses explicit `/bin/sh` with proper line endings for all scripts
+3. Provides fallback mechanisms for various execution contexts
+4. Fixes common issues with executable permissions and script formats
 
 ### Using Pre-built Docker Image
 
@@ -216,4 +234,36 @@ If you're still experiencing SSL issues, the Docker Compose file has been config
 - Check container logs with `docker logs playwright-chromium` if you encounter connection issues
 - For SSL certificate issues in enterprise environments, see the "Enterprise Environment Setup" section
 - For air-gapped or highly restricted environments, use the integrated Docker setup or pre-built Docker image
+- If you see "Exec format error" in enterprise environments, use the enterprise-compatible build script
+
+### Fixing "Exec format error" on Ubuntu
+
+If you encounter this specific error on Ubuntu when running the image from Docker Hub:
+
+```
+{"msg":"exec container process `/app/start-playwright-server.sh`: Exec format error"}
+```
+
+This is typically caused by line ending issues or script format incompatibilities. To fix:
+
+1. Use the enterprise-compatible build instead:
+   ```bash
+   cd docker
+   ./run-enterprise-build.sh
+   ```
+
+2. Alternatively, if you need to use the image from the registry, you can modify the container command:
+   ```bash
+   docker run -d \
+     --name playwright-chromium \
+     -p 9222:9222 \
+     --shm-size=2gb \
+     -v "$(pwd)/screenshots:/app/screenshots" \
+     --restart unless-stopped \
+     --entrypoint "/bin/sh" \
+     sahajamit/playwright-chromium-server:latest \
+     -c "/app/start.sh"
+   ```
+
+The enterprise build includes `dos2unix` to fix line endings and provides a `/bin/sh`-compatible script for maximum compatibility across platforms.
 
