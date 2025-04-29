@@ -272,3 +272,20 @@ If you encounter a "not found" error:
 
 This is because the registry image has `start-playwright-server.sh` instead of `start.sh`. The enterprise build includes `dos2unix` to fix line endings and provides additional script options for maximum compatibility across platforms.
 
+### Special Fix for WSL Ubuntu
+
+If you're using WSL (Windows Subsystem for Linux) with Ubuntu and encounter the "Exec format error" despite trying the above solutions, use the dedicated WSL fix script:
+
+```bash
+cd docker
+./wsl-ubuntu-fix.sh
+```
+
+This script:
+1. Creates a clean Linux-formatted startup script on your local system
+2. Mounts this script into the container
+3. Uses a direct `/bin/bash` execution to avoid any line ending or format issues
+4. Does not require running `dos2unix` or other utilities
+
+This approach is more reliable on WSL systems where Windows and Linux line endings can cause compatibility issues.
+
